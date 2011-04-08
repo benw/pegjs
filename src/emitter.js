@@ -622,19 +622,34 @@ PEG.compiler.emitter = function(ast) {
 
     action: function(node, resultVar) {
       /*
-       * In case of sequences, we splat their elements into function arguments
-       * one by one. Example:
+       * Every action function gets $ as the first argument,
+       * containing an array of the expression results. This
+       * permits the action to refer to positional parameters
+       * using $[0], $[1] etc, whether labeled or not.
        *
-       *   start: a:"a" b:"b" c:"c" { alert(arguments.length) }  // => 3
+       *   start = 'a' 'b'    { return $; }  // ==> [ 'a', 'b' ]
+       *   start = 'a'        { return $; }  // ==> [ 'a' ]
+       *
+       * As the second line of the above example shows, $ is an
+       * array even if it contains only a single element, i.e.
+       * the current node is not a sequence. This seems more
+       * consistent.
+       *
+       * If the expression is labeled, or is a sequence containing
+       * labeled expressions, those labels become additional function
+       * arguments.
+       *
+       *   start = a:'a', 'b' { return a; }  // ==> 'a'
        *
        * This behavior is reflected in this function.
        */
 
+      var dollar = "$";
       var expressionResultVar = UID.next("result");
 
       if (node.expression.type === "sequence") {
-        var formalParams = [];
-        var actualParams = [];
+        var formalParams = [dollar];
+        var actualParams = [expressionResultVar];
 
         var elements = node.expression.elements;
         var elementsLength = elements.length;
@@ -644,12 +659,14 @@ PEG.compiler.emitter = function(ast) {
             actualParams.push(expressionResultVar + "[" + i + "]");
           }
         }
-      } else if (node.expression.type === "labeled") {
-        var formalParams = [node.expression.label];
-        var actualParams = [expressionResultVar];
       } else {
-        var formalParams = [];
-        var actualParams = [];
+        var formalParams = [dollar];
+        var actualParams = ["[" + expressionResultVar + "]"];
+
+        if (node.expression.type === "labeled") {
+          formalParams.push(node.expression.label);
+          actualParams.push(expressionResultVar);
+        }
       }
 
       return formatCode(

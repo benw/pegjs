@@ -102,38 +102,55 @@ test("actions", function() {
   var singleElementUnlabeledParser = PEG.buildParser(
     'start = "a" { return arguments.length; }'
   );
-  parses(singleElementUnlabeledParser, "a", 0);
+  parses(singleElementUnlabeledParser, "a", 1);
 
   var singleElementLabeledParser = PEG.buildParser(
     'start = a:"a" { return [arguments.length, a]; }'
   );
-  parses(singleElementLabeledParser, "a", [1, "a"]);
+  parses(singleElementLabeledParser, "a", [2, "a"]);
 
   var multiElementUnlabeledParser = PEG.buildParser(
     'start = "a" "b" "c" { return arguments.length; }'
   );
-  parses(multiElementUnlabeledParser, "abc", 0);
+  parses(multiElementUnlabeledParser, "abc", 1);
 
   var multiElementLabeledParser = PEG.buildParser(
     'start = a:"a" "b" c:"c" { return [arguments.length, a, c]; }'
   );
-  parses(multiElementLabeledParser, "abc", [2, "a", "c"]);
+  parses(multiElementLabeledParser, "abc", [3, "a", "c"]);
 
   var innerElementsUnlabeledParser = PEG.buildParser(
     'start = "a" ("b" "c" "d" { return arguments.length; }) "e"'
   );
-  parses(innerElementsUnlabeledParser, "abcde", ["a", 0, "e"]);
+  parses(innerElementsUnlabeledParser, "abcde", ["a", 1, "e"]);
 
   var innerElementsLabeledParser = PEG.buildParser(
     'start = "a" (b:"b" "c" d:"d" { return [arguments.length, b, d]; }) "e"'
   );
-  parses(innerElementsLabeledParser, "abcde", ["a", [2, "b", "d"], "e"]);
+  parses(innerElementsLabeledParser, "abcde", ["a", [3, "b", "d"], "e"]);
 
   /* Test that the action is not called when its expression does not match. */
   var notAMatchParser = PEG.buildParser(
     'start = "a" { ok(false, "action got called when it should not be"); }'
   );
   doesNotParse(notAMatchParser, "b");
+});
+
+test("$ parameter", function() {
+  var sequenceParser = PEG.buildParser(
+    'start = "a" "b" "c"  { return $; }'
+  );
+  parses(sequenceParser, "abc", [ "a", "b", "c" ]);
+
+  var labeledParser = PEG.buildParser(
+    'start = a:"a" { return $; }'
+  );
+  parses(labeledParser, "a", [ "a" ]);
+
+  var unlabeledParser = PEG.buildParser(
+    'start = "a" { return $; }'
+  );
+  parses(unlabeledParser, "a", [ "a" ]);
 });
 
 test("initializer", function() {
@@ -176,6 +193,23 @@ test("rule references", function() {
   ].join("\n"));
   parses(parser, "Java", "Java");
   parses(parser, "Python", "Python");
+});
+
+test("$ parameter", function() {
+  var sequenceParser = PEG.buildParser(
+    'start = "a" "b" "c"  { return $; }'
+  );
+  parses(sequenceParser, "abc", [ "a", "b", "c" ]);
+
+  var labeledParser = PEG.buildParser(
+    'start = a:"a" { return $; }'
+  );
+  parses(labeledParser, "a", [ "a" ]);
+
+  var unlabeledParser = PEG.buildParser(
+    'start = "a" { return $; }'
+  );
+  parses(unlabeledParser, "a", [ "a" ]);
 });
 
 test("literals", function() {
